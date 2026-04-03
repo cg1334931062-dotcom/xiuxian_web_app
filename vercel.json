@@ -1,0 +1,19 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_APP_NAME": "凡人修仙传百科",
+    "NEXT_PUBLIC_APP_DESCRIPTION": "《凡人修仙传》完整数据百科网站"
+  }
+}

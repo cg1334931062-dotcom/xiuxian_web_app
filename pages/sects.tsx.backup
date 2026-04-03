@@ -1,0 +1,684 @@
+import React, { useState } from 'react';
+import { sects, getSectById, getCharactersBySect } from '../data/characters';
+
+const SectsPage: React.FC = () => {
+  const [selectedSect, setSelectedSect] = useState<string>(sects[0].id);
+  const [sortBy, setSortBy] = useState<'strength' | 'name'>('strength');
+
+  // 获取选中的门派
+  const currentSect = getSectById(selectedSect);
+  
+  // 获取该门派的人物
+  const sectCharacters = currentSect ? getCharactersBySect(currentSect.name) : [];
+
+  // 排序门派
+  const sortedSects = [...sects].sort((a, b) => {
+    if (sortBy === 'strength') {
+      return b.strength - a.strength;
+    } else {
+      return a.name.localeCompare(b.name);
+    }
+  });
+
+  // 获取实力等级颜色
+  const getStrengthColor = (strength: number) => {
+    if (strength >= 8) return '#e63946'; // 红色，实力强大
+    if (strength >= 6) return '#f4a261'; // 橙色，实力较强
+    if (strength >= 4) return '#2a9d8f'; // 青色，实力中等
+    return '#457b9d'; // 蓝色，实力一般
+  };
+
+  // 获取实力等级描述
+  const getStrengthDescription = (strength: number) => {
+    if (strength >= 8) return '顶尖势力';
+    if (strength >= 6) return '强大势力';
+    if (strength >= 4) return '中等势力';
+    return '普通势力';
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f0f9f5 0%, #dcf2e9 100%)',
+      padding: '2rem',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }}>
+        {/* 页面标题 */}
+        <header style={{
+          textAlign: 'center',
+          marginBottom: '3rem',
+          padding: '2rem',
+          background: 'rgba(255, 255, 255, 0.9)',
+          borderRadius: '1rem',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+        }}>
+          <h1 style={{
+            fontSize: '2.5rem',
+            color: '#1a6450',
+            marginBottom: '1rem',
+            fontWeight: 'bold'
+          }}>
+            🏛️ 门派势力分布
+          </h1>
+          <p style={{
+            fontSize: '1.1rem',
+            color: '#2e9d7a',
+            maxWidth: '800px',
+            margin: '0 auto',
+            lineHeight: '1.6'
+          }}>
+            探索《凡人修仙传》中的各大修仙门派，了解它们的实力分布、地区位置和重要人物。
+          </p>
+        </header>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 2fr',
+          gap: '2rem',
+          marginBottom: '3rem'
+        }}>
+          {/* 左侧：门派列表 */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '1rem',
+            padding: '1.5rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+          }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.5rem'
+            }}>
+              <h2 style={{
+                fontSize: '1.5rem',
+                color: '#1a6450',
+                margin: 0
+              }}>
+                门派列表
+              </h2>
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem'
+              }}>
+                <button
+                  onClick={() => setSortBy('strength')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: sortBy === 'strength' ? '#2e9d7a' : '#e9f5f0',
+                    color: sortBy === 'strength' ? 'white' : '#1a6450',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  按实力
+                </button>
+                <button
+                  onClick={() => setSortBy('name')}
+                  style={{
+                    padding: '0.5rem 1rem',
+                    background: sortBy === 'name' ? '#2e9d7a' : '#e9f5f0',
+                    color: sortBy === 'name' ? 'white' : '#1a6450',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    fontWeight: '600',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  按名称
+                </button>
+              </div>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '1rem'
+            }}>
+              {sortedSects.map(sect => (
+                <div
+                  key={sect.id}
+                  onClick={() => setSelectedSect(sect.id)}
+                  style={{
+                    padding: '1rem',
+                    background: selectedSect === sect.id ? '#e9f5f0' : 'white',
+                    border: `2px solid ${selectedSect === sect.id ? '#2e9d7a' : '#e0e0e0'}`,
+                    borderRadius: '0.75rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginBottom: '0.5rem'
+                  }}>
+                    <h3 style={{
+                      fontSize: '1.2rem',
+                      color: '#1a6450',
+                      margin: 0
+                    }}>
+                      {sect.name}
+                    </h3>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{
+                        fontSize: '0.9rem',
+                        color: '#666',
+                        fontWeight: '600'
+                      }}>
+                        实力：
+                      </span>
+                      <span style={{
+                        fontSize: '1.1rem',
+                        color: getStrengthColor(sect.strength),
+                        fontWeight: 'bold'
+                      }}>
+                        {sect.strength}/10
+                      </span>
+                    </div>
+                  </div>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: '#666',
+                    marginBottom: '0.5rem'
+                  }}>
+                    📍 {sect.region}
+                  </div>
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: '#888',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {sect.description.split('。')[0]}。
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 右侧：门派详情 */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '1rem',
+            padding: '2rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+          }}>
+            {currentSect ? (
+              <>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '2rem',
+                  paddingBottom: '1rem',
+                  borderBottom: '2px solid #e9f5f0'
+                }}>
+                  <div>
+                    <h2 style={{
+                      fontSize: '2rem',
+                      color: '#1a6450',
+                      margin: '0 0 0.5rem 0'
+                    }}>
+                      {currentSect.name}
+                    </h2>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '1rem',
+                      fontSize: '1.1rem',
+                      color: '#2e9d7a'
+                    }}>
+                      <span>📍 {currentSect.region}</span>
+                      <span>•</span>
+                      <span>👑 {currentSect.leader || '未知'}</span>
+                    </div>
+                  </div>
+                  <div style={{
+                    textAlign: 'center',
+                    padding: '1rem 1.5rem',
+                    background: getStrengthColor(currentSect.strength),
+                    color: 'white',
+                    borderRadius: '0.75rem',
+                    minWidth: '120px'
+                  }}>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      marginBottom: '0.25rem',
+                      opacity: 0.9
+                    }}>
+                      实力评分
+                    </div>
+                    <div style={{
+                      fontSize: '2rem',
+                      fontWeight: 'bold',
+                      marginBottom: '0.25rem'
+                    }}>
+                      {currentSect.strength}/10
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      fontWeight: '600'
+                    }}>
+                      {getStrengthDescription(currentSect.strength)}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 门派描述 */}
+                <div style={{
+                  marginBottom: '2rem'
+                }}>
+                  <h3 style={{
+                    fontSize: '1.3rem',
+                    color: '#1a6450',
+                    marginBottom: '1rem',
+                    paddingBottom: '0.5rem',
+                    borderBottom: '1px solid #e9f5f0'
+                  }}>
+                    门派介绍
+                  </h3>
+                  <p style={{
+                    fontSize: '1.1rem',
+                    color: '#333',
+                    lineHeight: '1.8',
+                    margin: 0
+                  }}>
+                    {currentSect.description}
+                  </p>
+                </div>
+
+                {/* 实力分析 */}
+                <div style={{
+                  marginBottom: '2rem'
+                }}>
+                  <h3 style={{
+                    fontSize: '1.3rem',
+                    color: '#1a6450',
+                    marginBottom: '1rem',
+                    paddingBottom: '0.5rem',
+                    borderBottom: '1px solid #e9f5f0'
+                  }}>
+                    实力分析
+                  </h3>
+                  <div style={{
+                    background: '#f8fdfa',
+                    padding: '1.5rem',
+                    borderRadius: '0.75rem',
+                    border: '1px solid #e9f5f0'
+                  }}>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      marginBottom: '1rem'
+                    }}>
+                      <div style={{
+                        width: '100%',
+                        height: '20px',
+                        background: '#e0e0e0',
+                        borderRadius: '10px',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{
+                          width: `${currentSect.strength * 10}%`,
+                          height: '100%',
+                          background: getStrengthColor(currentSect.strength),
+                          borderRadius: '10px',
+                          transition: 'width 0.5s ease'
+                        }} />
+                      </div>
+                      <div style={{
+                        marginLeft: '1rem',
+                        fontSize: '1.1rem',
+                        fontWeight: 'bold',
+                        color: getStrengthColor(currentSect.strength),
+                        minWidth: '60px'
+                      }}>
+                        {currentSect.strength * 10}%
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: '0.95rem',
+                      color: '#666',
+                      lineHeight: '1.6'
+                    }}>
+                      实力评分基于门派规模、高端战力、资源掌控和影响力等多个维度综合评定。
+                      {currentSect.strength >= 8 && ' 该门派在修仙界具有举足轻重的地位，是顶尖势力之一。'}
+                      {currentSect.strength >= 6 && currentSect.strength < 8 && ' 该门派实力强大，在所在地区具有重要影响力。'}
+                      {currentSect.strength >= 4 && currentSect.strength < 6 && ' 该门派实力中等，在特定地区有一定影响力。'}
+                      {currentSect.strength < 4 && ' 该门派实力一般，属于普通修仙势力。'}
+                    </div>
+                  </div>
+                </div>
+
+                {/* 相关人物 */}
+                <div>
+                  <h3 style={{
+                    fontSize: '1.3rem',
+                    color: '#1a6450',
+                    marginBottom: '1rem',
+                    paddingBottom: '0.5rem',
+                    borderBottom: '1px solid #e9f5f0'
+                  }}>
+                    相关人物
+                  </h3>
+                  {sectCharacters.length > 0 ? (
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
+                      gap: '1rem'
+                    }}>
+                      {sectCharacters.map(character => (
+                        <div
+                          key={character.id}
+                          style={{
+                            background: '#f8fdfa',
+                            padding: '1rem',
+                            borderRadius: '0.75rem',
+                            border: '1px solid #e9f5f0',
+                            transition: 'all 0.2s',
+                            // '&:hover': {:hover {
+                              transform: 'translateY(-2px)',
+                              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+                            }
+                          }}
+                        >
+                          <h4 style={{
+                            fontSize: '1.1rem',
+                            color: '#1a6450',
+                            margin: '0 0 0.5rem 0'
+                          }}>
+                            {character.name}
+                          </h4>
+                          <div style={{
+                            fontSize: '0.9rem',
+                            color: '#2e9d7a',
+                            marginBottom: '0.5rem'
+                          }}>
+                            {character.cultivationLevel}
+                          </div>
+                          <div style={{
+                            fontSize: '0.85rem',
+                            color: '#666',
+                            display: '-webkit-box',
+                            WebkitLineClamp: 3,
+                            WebkitBoxOrient: 'vertical',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            lineHeight: '1.4'
+                          }}>
+                            {character.description}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div style={{
+                      textAlign: 'center',
+                      padding: '2rem',
+                      background: '#f8fdfa',
+                      borderRadius: '0.75rem',
+                      border: '1px solid #e9f5f0'
+                    }}>
+                      <div style={{
+                        fontSize: '1.1rem',
+                        color: '#888',
+                        marginBottom: '0.5rem'
+                      }}>
+                        暂无相关人物数据
+                      </div>
+                      <div style={{
+                        fontSize: '0.9rem',
+                        color: '#aaa'
+                      }}>
+                        该门派暂无详细人物信息
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem'
+              }}>
+                <div style={{
+                  fontSize: '1.5rem',
+                  color: '#888',
+                  marginBottom: '1rem'
+                }}>
+                  请选择一个门派查看详情
+                </div>
+                <div style={{
+                  fontSize: '1rem',
+                  color: '#aaa'
+                }}>
+                  点击左侧的门派卡片查看详细信息
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 统计信息 */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          borderRadius: '1rem',
+          padding: '2rem',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+          marginBottom: '3rem'
+        }}>
+          <h2 style={{
+            fontSize: '1.5rem',
+            color: '#1a6450',
+            marginBottom: '1.5rem',
+            textAlign: 'center'
+          }}>
+            📊 门派势力统计
+          </h2>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '1.5rem'
+          }}>
+            <div style={{
+              textAlign: 'center',
+              padding: '1.5rem',
+              background: '#f8fdfa',
+              borderRadius: '0.75rem',
+              border: '1px solid #e9f5f0'
+            }}>
+              <div style={{
+                fontSize: '2rem',
+                color: '#1a6450',
+                fontWeight: 'bold',
+                marginBottom: '0.5rem'
+              }}>
+                {sects.length}
+              </div>
+              <div style={{
+                fontSize: '1rem',
+                color: '#2e9d7a',
+                fontWeight: '600'
+              }}>
+                总门派数量
+              </div>
+            </div>
+            <div style={{
+              textAlign: 'center',
+              padding: '1.5rem',
+              background: '#f8fdfa',
+              borderRadius: '0.75rem',
+              border: '1px solid #e9f5f0'
+            }}>
+              <div style={{
+                fontSize: '2rem',
+                color: '#e63946',
+                fontWeight: 'bold',
+                marginBottom: '0.5rem'
+              }}>
+                {sects.filter(s => s.strength >= 8).length}
+              </div>
+              <div style={{
+                fontSize: '1rem',
+                color: '#2e9d7a',
+                fontWeight: '600'
+              }}>
+                顶尖势力
+              </div>
+            </div>
+            <div style={{
+              textAlign: 'center',
+              padding: '1.5rem',
+              background: '#f8fdfa',
+              borderRadius: '0.75rem',
+              border: '1px solid #e9f5f0'
+            }}>
+              <div style={{
+                fontSize: '2rem',
+                color: '#f4a261',
+                fontWeight: 'bold',
+                marginBottom: '0.5rem'
+              }}>
+                {sects.filter(s => s.strength >= 6 && s.strength < 8).length}
+              </div>
+              <div style={{
+                fontSize: '1rem',
+                color: '#2e9d7a',
+                fontWeight: '600'
+              }}>
+                强大势力
+              </div>
+            </div>
+            <div style={{
+              textAlign: 'center',
+              padding: '1.5rem',
+              background: '#f8fdfa',
+              borderRadius: '0.75rem',
+              border: '1px solid #e9f5f0'
+            }}>
+              <div style={{
+                fontSize: '2rem',
+                color: '#2a9d8f',
+                fontWeight: 'bold',
+                marginBottom: '0.5rem'
+              }}>
+                {Math.round(sects.reduce((sum, sect) => sum + sect.strength, 0) / sects.length * 10) / 10}
+              </div>
+              <div style={{
+                fontSize: '1rem',
+                color: '#2e9d7a',
+                fontWeight: '600'
+              }}>
+                平均实力
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 页面导航 */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginTop: '2rem'
+        }}>
+          <a
+            href="/"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#e9f5f0',
+              color: '#1a6450',
+              textDecoration: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              // '&:hover': {:hover {
+                background: '#2e9d7a',
+                color: 'white',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            返回首页
+          </a>
+          <a
+            href="/worldview"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#e9f5f0',
+              color: '#1a6450',
+              textDecoration: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              // '&:hover': {:hover {
+                background: '#2e9d7a',
+                color: 'white',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            修仙境界
+          </a>
+          <a
+            href="/characters"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#e9f5f0',
+              color: '#1a6450',
+              textDecoration: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              // '&:hover': {:hover {
+                background: '#2e9d7a',
+                color: 'white',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            人物关系
+          </a>
+          <a
+            href="/timeline"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#e9f5f0',
+              color: '#1a6450',
+              textDecoration: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              // '&:hover': {:hover {
+                background: '#2e9d7a',
+                color: 'white',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            剧情时间线
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SectsPage;

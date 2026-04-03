@@ -1,0 +1,841 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { searchAll, SearchResult, getResultDetails, getSearchStats, getSearchSuggestions, SearchOptions } from '../data/search';
+
+// 防抖函数
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    // } delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  // } [value, delay]);
+
+  return debouncedValue;
+}
+
+const SearchPage: React.FC = () => {
+  const [query, setQuery] = useState<string>('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [selectedTypes, setSelectedTypes] = useState<('character' | 'level' | 'event' | 'sect')[]>(['character', 'level', 'event', 'sect']);
+  const [selectedResult, setSelectedResult] = useState<SearchResult | null>(null);
+  const [suggestions, setSuggestions] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState<boolean>(false);
+  
+  // 使用防抖
+  const debouncedQuery = useDebounce(query, 300);
+
+  // 搜索函数
+  const performSearch = useCallback(() => {
+    if (!debouncedQuery.trim()) {
+      setResults([]);
+      setSelectedResult(null);
+      return;
+    }
+
+    setLoading(true);
+    
+    const options: SearchOptions = {
+      types: selectedTypes,
+      minRelevance: 10,
+      limit: 50
+    };
+    
+    const searchResults = searchAll(debouncedQuery, options);
+    setResults(searchResults);
+    setLoading(false);
+    
+    // 如果有结果，默认选择第一个
+    if (searchResults.length > 0 && !selectedResult) {
+      setSelectedResult(searchResults[0]);
+    }
+  // } [debouncedQuery, selectedTypes, selectedResult]);
+
+  // 当查询变化时执行搜索
+  useEffect(() => {
+    performSearch();
+  // } [performSearch]);
+
+  // 获取搜索建议
+  useEffect(() => {
+    if (query.trim()) {
+      const newSuggestions = getSearchSuggestions(query);
+      setSuggestions(newSuggestions);
+      setShowSuggestions(true);
+    } else {
+      setSuggestions([]);
+      setShowSuggestions(false);
+    }
+  // } [query]);
+
+  // 获取搜索统计
+  const stats = getSearchStats(debouncedQuery);
+
+  // 处理类型选择
+  const toggleType = (type: 'character' | 'level' | 'event' | 'sect') => {
+    if (selectedTypes.includes(type)) {
+      setSelectedTypes(selectedTypes.filter(t => t !== type));
+    } else {
+      setSelectedTypes([...selectedTypes, type]);
+    }
+  };
+
+  // 处理建议点击
+  const handleSuggestionClick = (suggestion: string) => {
+    setQuery(suggestion);
+    setShowSuggestions(false);
+  };
+
+  // 获取类型图标
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'character': return '👤';
+      case 'level': return '🏔️';
+      case 'event': return '📅';
+      case 'sect': return '🏛️';
+      default: return '🔍';
+    }
+  };
+
+  // 获取类型颜色
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'character': return '#1a6450';
+      case 'level': return '#2a9d8f';
+      case 'event': return '#e63946';
+      case 'sect': return '#f4a261';
+      default: return '#666';
+    }
+  };
+
+  // 获取相关性颜色
+  const getRelevanceColor = (relevance: number) => {
+    if (relevance >= 70) return '#e63946'; // 红色，高度相关
+    if (relevance >= 50) return '#f4a261'; // 橙色，中度相关
+    if (relevance >= 30) return '#2a9d8f'; // 青色，低度相关
+    return '#457b9d'; // 蓝色，轻微相关
+  };
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #f0f9f5 0%, #dcf2e9 100%)',
+      padding: '2rem',
+      fontFamily: 'system-ui, -apple-system, sans-serif'
+    }}>
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto'
+      }}>
+        {/* 页面标题 */}
+        <header style={{
+          textAlign: 'center',
+          marginBottom: '3rem',
+          padding: '2rem',
+          background: 'rgba(255, 255, 255, 0.9)',
+          borderRadius: '1rem',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)'
+        }}>
+          <h1 style={{
+            fontSize: '2.5rem',
+            color: '#1a6450',
+            marginBottom: '1rem',
+            fontWeight: 'bold'
+          }}>
+            🔍 智能搜索
+          </h1>
+          <p style={{
+            fontSize: '1.1rem',
+            color: '#2e9d7a',
+            maxWidth: '800px',
+            margin: '0 auto',
+            lineHeight: '1.6'
+          }}>
+            搜索《凡人修仙传》中的所有内容：人物、境界、事件、门派。支持全文搜索和智能筛选。
+          </p>
+        </header>
+
+        {/* 搜索框和筛选器 */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          borderRadius: '1rem',
+          padding: '2rem',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+          marginBottom: '2rem',
+          position: 'relative'
+        }}>
+          {/* 搜索框 */}
+          <div style={{
+            position: 'relative',
+            marginBottom: '1.5rem'
+          }}>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="搜索人物、境界、事件、门派..."
+              style={{
+                width: '100%',
+                padding: '1rem 1.5rem',
+                fontSize: '1.1rem',
+                border: '2px solid #e9f5f0',
+                borderRadius: '0.75rem',
+                outline: 'none',
+                transition: 'all 0.2s',
+                boxSizing: 'border-box',
+                // '&:focus': {:focus {
+                  borderColor: '#2e9d7a',
+                  boxShadow: '0 0 0 3px rgba(46, 157, 122, 0.1)'
+                }
+              }}
+              onFocus={() => setShowSuggestions(true)}
+              onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+            />
+            
+            {/* 搜索建议 */}
+            {showSuggestions && suggestions.length > 0 && (
+              <div style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                background: 'white',
+                border: '1px solid #e9f5f0',
+                borderRadius: '0.75rem',
+                boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                zIndex: 100,
+                marginTop: '0.5rem',
+                maxHeight: '300px',
+                overflowY: 'auto'
+              }}>
+                {suggestions.map((suggestion, index) => (
+                  <div
+                    key={index}
+                    onClick={() => handleSuggestionClick(suggestion)}
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      borderBottom: '1px solid #f0f0f0',
+                      // '&:hover': {:hover {
+                        background: '#f8fdfa'
+                      // }
+                      '&:last-child': {
+                        borderBottom: 'none'
+                      }
+                    }}
+                  >
+                    <div style={{
+                      fontSize: '1rem',
+                      color: '#333'
+                    }}>
+                      {suggestion}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 类型筛选器 */}
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.75rem',
+            marginBottom: '1.5rem'
+          }}>
+            {(['character', 'level', 'event', 'sect'] as const).map(type => (
+              <button
+                key={type}
+                onClick={() => toggleType(type)}
+                style={{
+                  padding: '0.5rem 1rem',
+                  background: selectedTypes.includes(type) ? getTypeColor(type) : '#e9f5f0',
+                  color: selectedTypes.includes(type) ? 'white' : '#1a6450',
+                  border: 'none',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                <span>{getTypeIcon(type)}</span>
+                <span>
+                  {type === 'character' && '人物'}
+                  {type === 'level' && '境界'}
+                  {type === 'event' && '事件'}
+                  {type === 'sect' && '门派'}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {/* 搜索统计 */}
+          {debouncedQuery.trim() && (
+            <div style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              gap: '1rem',
+              padding: '1rem',
+              background: '#f8fdfa',
+              borderRadius: '0.75rem',
+              border: '1px solid #e9f5f0'
+            }}>
+              <div style={{
+                fontSize: '0.95rem',
+                color: '#666'
+              }}>
+                找到 <strong style={{ color: '#1a6450' }}>{stats.total}</strong> 个相关结果
+              </div>
+              
+              {Object.entries(stats.byType).map(([type, count]) => (
+                <div
+                  key={type}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.9rem',
+                    color: getTypeColor(type)
+                  }}
+                >
+                  <span>{getTypeIcon(type)}</span>
+                  <span>
+                    {type === 'character' && '人物'}
+                    {type === 'level' && '境界'}
+                    {type === 'event' && '事件'}
+                    {type === 'sect' && '门派'}
+                    ：{count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 2fr',
+          gap: '2rem',
+          marginBottom: '3rem'
+        }}>
+          {/* 左侧：搜索结果列表 */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '1rem',
+            padding: '1.5rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+            maxHeight: '600px',
+            overflowY: 'auto'
+          }}>
+            {loading ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '2rem'
+              }}>
+                <div style={{
+                  fontSize: '1.1rem',
+                  color: '#2e9d7a'
+                }}>
+                  搜索中...
+                </div>
+              </div>
+            ) : results.length === 0 ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '2rem'
+              }}>
+                <div style={{
+                  fontSize: '1.1rem',
+                  color: '#888',
+                  marginBottom: '0.5rem'
+                }}>
+                  {debouncedQuery.trim() ? '未找到相关结果' : '请输入搜索关键词'}
+                </div>
+                <div style={{
+                  fontSize: '0.9rem',
+                  color: '#aaa'
+                }}>
+                  尝试搜索：韩立、元婴期、黄枫谷、飞升等
+                </div>
+              </div>
+            ) : (
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '1rem'
+              }}>
+                {results.map(result => (
+                  <div
+                    key={`${result.type}-${result.id}`}
+                    onClick={() => setSelectedResult(result)}
+                    style={{
+                      padding: '1rem',
+                      background: selectedResult?.id === result.id && selectedResult?.type === result.type ? '#e9f5f0' : 'white',
+                      border: `2px solid ${selectedResult?.id === result.id && selectedResult?.type === result.type ? '#2e9d7a' : '#e0e0e0'}`,
+                      borderRadius: '0.75rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      // '&:hover': {:hover {
+                        transform: 'translateY(-2px)',
+                        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+                      }
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'flex-start',
+                      marginBottom: '0.5rem'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem'
+                      }}>
+                        <span style={{
+                          fontSize: '1.2rem'
+                        }}>
+                          {getTypeIcon(result.type)}
+                        </span>
+                        <h3 style={{
+                          fontSize: '1.1rem',
+                          color: '#1a6450',
+                          margin: 0,
+                          fontWeight: '600'
+                        }}>
+                          {result.title}
+                        </h3>
+                      </div>
+                      <div style={{
+                        fontSize: '0.9rem',
+                        color: getRelevanceColor(result.relevance),
+                        fontWeight: 'bold',
+                        background: `${getRelevanceColor(result.relevance)}15`,
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: '0.25rem'
+                      }}>
+                        {result.relevance}%
+                      </div>
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#666',
+                      marginBottom: '0.5rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <span style={{
+                        fontSize: '0.8rem',
+                        color: getTypeColor(result.type),
+                        background: `${getTypeColor(result.type)}15`,
+                        padding: '0.1rem 0.5rem',
+                        borderRadius: '0.25rem',
+                        fontWeight: '600'
+                      }}>
+                        {result.type === 'character' && '人物'}
+                        {result.type === 'level' && '境界'}
+                        {result.type === 'event' && '事件'}
+                        {result.type === 'sect' && '门派'}
+                      </span>
+                    </div>
+                    <div style={{
+                      fontSize: '0.9rem',
+                      color: '#888',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      lineHeight: '1.4'
+                    }}>
+                      {result.description}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 右侧：结果详情 */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.9)',
+            borderRadius: '1rem',
+            padding: '2rem',
+            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+            minHeight: '400px'
+          }}>
+            {selectedResult ? (
+              <>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '1.5rem',
+                  paddingBottom: '1rem',
+                  borderBottom: '2px solid #e9f5f0'
+                }}>
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '1rem'
+                  }}>
+                    <span style={{
+                      fontSize: '2rem'
+                    }}>
+                      {getTypeIcon(selectedResult.type)}
+                    </span>
+                    <div>
+                      <h2 style={{
+                        fontSize: '1.8rem',
+                        color: '#1a6450',
+                        margin: '0 0 0.25rem 0'
+                      }}>
+                        {selectedResult.title}
+                      </h2>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        fontSize: '1rem',
+                        color: '#2e9d7a'
+                      }}>
+                        <span style={{
+                          background: `${getTypeColor(selectedResult.type)}15`,
+                          color: getTypeColor(selectedResult.type),
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '0.5rem',
+                          fontWeight: '600'
+                        }}>
+                          {selectedResult.type === 'character' && '人物'}
+                          {selectedResult.type === 'level' && '修仙境界'}
+                          {selectedResult.type === 'event' && '剧情事件'}
+                          {selectedResult.type === 'sect' && '修仙门派'}
+                        </span>
+                        <span>•</span>
+                        <span style={{
+                          color: getRelevanceColor(selectedResult.relevance),
+                          fontWeight: 'bold'
+                        }}>
+                          相关性：{selectedResult.relevance}%
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 详细信息 */}
+                <div style={{
+                  marginBottom: '2rem'
+                }}>
+                  <h3 style={{
+                    fontSize: '1.3rem',
+                    color: '#1a6450',
+                    marginBottom: '1rem',
+                    paddingBottom: '0.5rem',
+                    borderBottom: '1px solid #e9f5f0'
+                  }}>
+                    详细信息
+                  </h3>
+                  <div style={{
+                    background: '#f8fdfa',
+                    padding: '1.5rem',
+                    borderRadius: '0.75rem',
+                    border: '1px solid #e9f5f0',
+                    whiteSpace: 'pre-line',
+                    lineHeight: '1.8',
+                    fontSize: '1rem',
+                    color: '#333'
+                  }}>
+                    {getResultDetails(selectedResult)}
+                  </div>
+                </div>
+
+                {/* 原始数据预览（调试用） */}
+                <div style={{
+                  marginBottom: '2rem'
+                }}>
+                  <h3 style={{
+                    fontSize: '1.3rem',
+                    color: '#1a6450',
+                    marginBottom: '1rem',
+                    paddingBottom: '0.5rem',
+                    borderBottom: '1px solid #e9f5f0'
+                  }}>
+                    数据预览
+                  </h3>
+                  <div style={{
+                    background: '#f8fdfa',
+                    padding: '1.5rem',
+                    borderRadius: '0.75rem',
+                    border: '1px solid #e9f5f0',
+                    maxHeight: '200px',
+                    overflowY: 'auto',
+                    fontSize: '0.85rem',
+                    color: '#666',
+                    fontFamily: 'monospace'
+                  }}>
+                    {JSON.stringify(selectedResult.data, null, 2)}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div style={{
+                textAlign: 'center',
+                padding: '3rem'
+              }}>
+                <div style={{
+                  fontSize: '1.5rem',
+                  color: '#888',
+                  marginBottom: '1rem'
+                }}>
+                  {debouncedQuery.trim() ? '请选择一个搜索结果查看详情' : '开始搜索吧！'}
+                </div>
+                <div style={{
+                  fontSize: '1rem',
+                  color: '#aaa',
+                  marginBottom: '2rem'
+                }}>
+                  {debouncedQuery.trim() 
+                    ? '点击左侧的搜索结果卡片查看详细信息'
+                    : '在搜索框中输入关键词，探索《凡人修仙传》的世界'
+                  }
+                </div>
+                <div style={{
+                  display: 'inline-flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '1rem',
+                  background: '#f8fdfa',
+                  padding: '2rem',
+                  borderRadius: '0.75rem',
+                  border: '1px solid #e9f5f0'
+                }}>
+                  <div style={{
+                    fontSize: '1.1rem',
+                    color: '#1a6450',
+                    fontWeight: '600',
+                    marginBottom: '0.5rem'
+                  }}>
+                    搜索示例：
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.5rem',
+                    justifyContent: 'center'
+                  }}>
+                    {['韩立', '元婴期', '黄枫谷', '飞升', '南宫婉', '掌天瓶'].map(example => (
+                      <button
+                        key={example}
+                        onClick={() => setQuery(example)}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: '#e9f5f0',
+                          color: '#1a6450',
+                          border: 'none',
+                          borderRadius: '0.5rem',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          transition: 'all 0.2s',
+                          // '&:hover': {:hover {
+                            background: '#2e9d7a',
+                            color: 'white',
+                            transform: 'translateY(-2px)'
+                          }
+                        }}
+                      >
+                        {example}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* 热门搜索 */}
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.9)',
+          borderRadius: '1rem',
+          padding: '2rem',
+          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+          marginBottom: '3rem'
+        }}>
+          <h2 style={{
+            fontSize: '1.5rem',
+            color: '#1a6450',
+            marginBottom: '1.5rem',
+            textAlign: 'center'
+          }}>
+            🔥 热门搜索
+          </h2>
+          <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '1rem',
+            justifyContent: 'center'
+          }}>
+            {[
+              { query: '韩立', type: 'character' // }
+              { query: '南宫婉', type: 'character' // }
+              { query: '元婴期', type: 'level' // }
+              { query: '黄枫谷', type: 'sect' // }
+              { query: '飞升', type: 'event' // }
+              { query: '掌天瓶', type: 'character' // }
+              { query: '令狐老祖', type: 'character' // }
+              { query: '掩月宗', type: 'sect' // }
+              { query: '化神', type: 'level' // }
+              { query: '坠魔谷', type: 'event' }
+            ].map((item, index) => (
+              <button
+                key={index}
+                onClick={() => {
+                  setQuery(item.query);
+                  setSelectedTypes([item.type as any]);
+                }}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: '#e9f5f0',
+                  color: '#1a6450',
+                  border: 'none',
+                  borderRadius: '0.75rem',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  // '&:hover': {:hover {
+                    background: '#2e9d7a',
+                    color: 'white',
+                    transform: 'translateY(-2px)'
+                  }
+                }}
+              >
+                <span>{getTypeIcon(item.type)}</span>
+                <span>{item.query}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 页面导航 */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '1rem',
+          marginTop: '2rem'
+        }}>
+          <a
+            href="/"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#e9f5f0',
+              color: '#1a6450',
+              textDecoration: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              // '&:hover': {:hover {
+                background: '#2e9d7a',
+                color: 'white',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            返回首页
+          </a>
+          <a
+            href="/worldview"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#e9f5f0',
+              color: '#1a6450',
+              textDecoration: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              // '&:hover': {:hover {
+                background: '#2e9d7a',
+                color: 'white',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            修仙境界
+          </a>
+          <a
+            href="/characters"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#e9f5f0',
+              color: '#1a6450',
+              textDecoration: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              // '&:hover': {:hover {
+                background: '#2e9d7a',
+                color: 'white',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            人物关系
+          </a>
+          <a
+            href="/timeline"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#e9f5f0',
+              color: '#1a6450',
+              textDecoration: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              // '&:hover': {:hover {
+                background: '#2e9d7a',
+                color: 'white',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            剧情时间线
+          </a>
+          <a
+            href="/sects"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: '#e9f5f0',
+              color: '#1a6450',
+              textDecoration: 'none',
+              borderRadius: '0.5rem',
+              fontWeight: '600',
+              transition: 'all 0.2s',
+              // '&:hover': {:hover {
+                background: '#2e9d7a',
+                color: 'white',
+                transform: 'translateY(-2px)'
+              }
+            }}
+          >
+            门派势力
+          </a>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default SearchPage;
